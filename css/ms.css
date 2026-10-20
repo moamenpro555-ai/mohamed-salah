@@ -1,0 +1,50 @@
+/* ms.css – شكل Mr. Mohamed Salah (بيتحمّل بعد wow.css) */
+:root{--ms-blue:#2236ff;--ms-yel:#ffe14d;--ms-red:#f0364b;--ms-ink:#0b1033;--grad-gold:linear-gradient(#ffe14d,#ffe14d);--grad-dark:linear-gradient(#0b1033,#0b1033)}
+body{background:#fbfaf5}
+.en{font-family:'Bricolage Grotesque','Cairo',sans-serif;direction:ltr;unicode-bidi:isolate}
+/* النافبار */
+nav{background:var(--ms-blue);border-bottom:3px solid var(--ms-ink);box-shadow:none}
+.brand_n{font-family:'Bricolage Grotesque','Cairo',sans-serif;direction:ltr;font-weight:800;font-size:24px;color:#fff;background:none;-webkit-text-fill-color:#fff}
+.brand_n::before{content:'MS';background:var(--ms-yel);color:var(--ms-ink);padding:0 7px;border-radius:6px;margin-inline-end:8px;font-size:.8em}
+.brand_s{color:#dfe3ff}
+nav .link{color:#fff;font-weight:700}
+nav .link:hover,nav .link[aria-current="page"]{color:var(--ms-yel)}
+/* الهيرو */
+.hr_hero{background:var(--ms-blue) radial-gradient(#ffffff26 1.6px,transparent 1.7px) 0 0/26px 26px;clip-path:none;border-bottom:4px solid var(--ms-ink)}
+.hr_hero::before,.hr_hero::after,.hr_stage::before{display:none}
+.hr_dust i{color:#ffffff30;font-family:'Bricolage Grotesque',sans-serif}
+.hr_copy h1,.hr_copy h1 span,.hr_copy h1 span:first-child{background:none;-webkit-text-fill-color:#fff;color:#fff;font-family:'Cairo',sans-serif;font-weight:900}
+.hr_copy h1 span:last-child{display:block}
+.hr_lead{color:#eef0ff}
+.hr_btn{border-radius:12px;font-weight:900}
+.hr_btn.g{background:var(--ms-yel);color:var(--ms-ink);border:2px solid var(--ms-ink);box-shadow:4px 5px 0 var(--ms-ink)}
+.hr_btn.g:hover{box-shadow:6px 8px 0 var(--ms-ink)}
+.hr_btn.o{background:transparent;color:#fff;border:2px solid #fff;box-shadow:none}
+.hr_btn.g::after{display:none}
+.hr_chip{background:#fff;color:var(--ms-ink);border:2px solid var(--ms-ink);box-shadow:0 5px 0 var(--ms-ink)}
+.hr_chip::before{background:var(--ms-yel);border:2px solid var(--ms-ink)}
+/* ورقة تصحيح الجملة */
+.hr_frame{aspect-ratio:auto;border-radius:18px;border:2px solid var(--ms-ink);background:#fffdf6;box-shadow:10px 12px 0 var(--ms-ink);transform:rotate(-2.5deg);overflow:hidden}
+.ms_pad{padding:24px 24px 20px;color:var(--ms-ink);direction:rtl;background-image:repeating-linear-gradient(transparent 0 47px,#c9d0ff 47px 48px);background-position:0 20px}
+.ms_pad small{display:block;font-weight:700;color:#555c80}
+.ms_sen{direction:ltr;text-align:left;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(24px,3.4vw,34px);line-height:1.5;min-height:96px;margin:12px 0 6px}
+.ms_sen s{text-decoration:none;color:var(--ms-ink)}
+.ms_sen s.x{text-decoration:line-through;text-decoration-color:var(--ms-red);text-decoration-thickness:4px;opacity:.6}
+.ms_sen em{color:var(--ms-red);font-style:normal}
+.ms_why{min-height:30px;font-weight:700}
+.ms_go{font:inherit;font-weight:900;border:0;border-radius:12px;padding:10px 24px;background:var(--ms-blue);color:#fff;box-shadow:0 4px 0 var(--ms-ink);cursor:pointer;margin-top:8px}
+/* الكروت */
+.phase>div,.hr_sc,.wow_ol li,.ac_card,.ac_course,.ac_lesson{border:2px solid var(--ms-ink)!important;border-radius:18px;box-shadow:6px 6px 0 var(--ms-blue)}
+.hr_sc{background:var(--ms-ink);box-shadow:6px 6px 0 var(--ms-yel);border-color:var(--ms-ink)!important}
+.hr_sc b{color:var(--ms-yel)}
+.hr_tag{font-weight:800}
+.wow_n{background:var(--ms-yel);color:var(--ms-ink);border:2px solid var(--ms-ink)}
+.wow_cta{background:var(--ms-blue);color:#fff;border:3px solid var(--ms-ink);box-shadow:8px 8px 0 var(--ms-ink);border-radius:22px}
+.text_1{color:var(--ms-blue)}
+/* الفوتر */
+.foot{background:var(--ms-ink);border-top:5px solid var(--ms-yel);color:#fff}
+.foot_3{background:var(--ms-yel);color:var(--ms-ink);border-radius:12px;font-weight:900}
+/* أزرار الأقسام والمستويات */
+.child10,.child11{border-radius:12px}
+.child11[aria-pressed="true"]{background:var(--ms-yel);color:var(--ms-ink);border:2px solid var(--ms-ink)}
+@media (prefers-reduced-motion:reduce){.hr_chip{animation:none}}
