@@ -6,12 +6,12 @@
     "use strict";
 
     var LETTERS = ["أ", "ب", "ج", "د"];
-    var STAGES = { prep: "اعدادي", sec: "ثانوي" };
+    var STAGES = { sec: "ثانوي" };
     var YEARS = { "4": "الأولى", "6": "التانية", "8": "التالتة" };
     var PARTS = { "7": "امتحانات الشهر", "8": "امتحانات الحصة" };
     var MONTHS = ["أكتوبر", "نوفمبر", "ديسمبر"];
     var LESSONS = ["الأولى", "الثانية", "الثالثة"];
-    var BACK_PAGE = { prep: "index3.html", sec: "index4.html" };
+    var BACK_PAGE = { sec: "index4.html" };
 
     var root = document.getElementById("qz_root");
     var dlg = document.getElementById("qz_dlg");
@@ -31,7 +31,7 @@
     function backHref() {
         if (exam && exam.back) return exam.back;
         var stage = id.split("_")[0];
-        return BACK_PAGE[stage] || "index2.html";
+        return BACK_PAGE[stage] || "index4.html";
     }
     // اسم مفهوم للامتحان من المفتاح (لما الامتحان لسه ماتضافش)
     function labelFromId() {

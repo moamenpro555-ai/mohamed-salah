@@ -77,7 +77,7 @@
 
         var title = h("input", { id: "ex_title", maxlength: "200", value: ex ? ex.title : "" });
         var desc = h("textarea", { id: "ex_desc", maxlength: "2000" }); desc.value = ex ? ex.description : "";
-        var stage = ui.placeStage("ex_stage", ex ? ex.stage : "prep");
+        var stage = ui.placeStage("ex_stage", ex ? ex.stage : "secondary");
         var grade = ui.placeGrade("ex_grade", ex ? ex.grade : 1);
         var qn = h("input", { id: "ex_qn", type: "number", min: "1", max: "100", value: String(ex ? ex.questionCount : 10) });
         var cc = h("select", { id: "ex_cc" }, [2, 3, 4, 5].map(function (n) { return option(n, E.num(n) + " اختيارات (" + E.LETTERS.slice(0, n).join(" ") + ")", (ex ? ex.choicesCount : 4) === n); }));
@@ -382,7 +382,7 @@
         E.clear(body());
         if (!exams.length) await run(async function () { exams = (await E.call("GET", "/api/teacher/exams")).exams; });
         var exSel = h("select", { id: "rs_ex", "aria-label": "الامتحان" }, [option("", "كل الامتحانات", !filters.examId)].concat(exams.map(function (x) { return option(x.id, x.title + " - " + E.placeLabel(x.stage, x.grade), x.id === filters.examId); })));
-        var st = h("select", { id: "rs_st", "aria-label": "المرحلة" }, [option("", "كل المراحل", !filters.stage), option("prep", "إعدادي", filters.stage === "prep"), option("secondary", "ثانوي", filters.stage === "secondary")]);
+        var st = h("select", { id: "rs_st", "aria-label": "المرحلة" }, [option("", "كل المراحل", !filters.stage), option("secondary", "ثانوي", filters.stage === "secondary")]);
         var gr = h("select", { id: "rs_gr", "aria-label": "الصف" }, [option("", "كل الصفوف", !filters.grade)].concat([1, 2, 3].map(function (g) { return option(g, "الصف " + E.GRADES[g], String(g) === filters.grade); })));
         var kd = h("select", { id: "rs_kd", "aria-label": "النوع" }, [option("", "كل الأنواع", !filters.kind), option("session", "امتحانات الحصة", filters.kind === "session"), option("month", "امتحانات الشهر", filters.kind === "month"), option("homework", "واجب", filters.kind === "homework")]);
         var mo = h("select", { id: "rs_mo", "aria-label": "الشهر" }, [option("", "كل الشهور", !filters.month)].concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return option(m, E.MONTHS[m], String(m) === filters.month); })));

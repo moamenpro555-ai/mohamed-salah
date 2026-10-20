@@ -17,12 +17,12 @@
     function field(label, id, control) { return [h("label", { for: id, text: label }), control]; }
     function option(value, text, sel) { return h("option", { value: String(value), text: text, selected: sel ? true : false }); }
     function stageSelect(id, val) { return h("select", { id: id }, Object.keys(E.STAGES).map(function (k) { return option(k, E.STAGES[k], k === val); })); }
-    function gradeSelect(id, val) { return h("select", { id: id }, [1, 2, 3, 4, 5, 6].map(function (g) { return option(g, "الصف " + E.GRADES[g], g === val); })); }
+    function gradeSelect(id, val) { return h("select", { id: id }, [1, 2, 3].map(function (g) { return option(g, "الصف " + E.GRADES[g], g === val); })); }
     function fmtDate(s) { return s ? new Date(s).toLocaleDateString("ar-EG") : "-"; }
-    // المرحلة والصف للامتحانات والطلاب: إعدادي وثانوي، من أولى لتالتة
+    // المرحلة والصف للامتحانات والطلاب: ثانوي فقط، من أولى لتالتة
     function placeStage(id, val, blank) {
         var opts = blank ? [option("", "المرحلة؟", !val)] : [];
-        return h("select", { id: id }, opts.concat(["prep", "secondary"].map(function (k) { return option(k, E.STAGES[k], k === val); })));
+        return h("select", { id: id }, opts.concat(["secondary"].map(function (k) { return option(k, E.STAGES[k], k === val); })));
     }
     function placeGrade(id, val, blank) {
         var opts = blank ? [option("", "الصف؟", !val)] : [];

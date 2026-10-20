@@ -2,7 +2,7 @@
 const videos = document.querySelectorAll("video");
 
 // كل سنة: الزرار بتاعها + القسم بتاعها + (لو موجودة) القايمة اللي بتفتح تحتها
-// sub4 / sub6 / sub8 مش موجودين في الابتدائي، فبتبقى null وكل حاجة بتشتغل عادي
+// المرحلة الثانوية بس (sub4 / sub6 / sub8 ممكن مايكونوش موجودين، فبتبقى null وكل حاجة بتشتغل عادي)
 const buttons = [
     { btn: document.getElementById("child4"), section: document.querySelector(".level1"), sub: document.querySelector(".sub4") },
     { btn: document.getElementById("child6"), section: document.querySelector(".level2"), sub: document.querySelector(".sub6") },

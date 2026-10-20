@@ -4,7 +4,7 @@
     var BASE = String(window.ELADHAM_API || "").replace(/\/$/, "");
     var csrf = null;
 
-    var STAGES = { primary: "ابتدائي", prep: "إعدادي", secondary: "ثانوي" };
+    var STAGES = { secondary: "ثانوي" };
     var GRADES = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس"];
     var MONTHS = ["", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
     var SECTIONS = { courses: "كورسات", sessions: "حصص", homework: "واجب" };

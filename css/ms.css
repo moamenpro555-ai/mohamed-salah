@@ -48,3 +48,6 @@ nav .link:hover,nav .link[aria-current="page"]{color:var(--ms-yel)}
 .child10,.child11{border-radius:12px}
 .child11[aria-pressed="true"]{background:var(--ms-yel);color:var(--ms-ink);border:2px solid var(--ms-ink)}
 @media (prefers-reduced-motion:reduce){.hr_chip{animation:none}}
+
+.phase{justify-content:center}
+.phase>div{max-width:520px;margin-inline:auto}
