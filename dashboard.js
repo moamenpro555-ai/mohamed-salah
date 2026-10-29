@@ -129,14 +129,14 @@
             root.appendChild(h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "كلمة سر جديدة" }), f]));
             return;
         }
-        var box = h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "كورساتي" }), h("p", { class: "ac_empty", text: "جاري التحميل..." })]);
+        var box = h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "كورساتي وحصصي" }), h("p", { class: "ac_empty", text: "جاري التحميل..." })]);
         root.appendChild(box);
         try {
             var d = await E.call("GET", "/api/courses");
             var mine = d.courses.filter(function (c) { return c.enrolled; });
             var others = d.courses.filter(function (c) { return !c.enrolled; });
             E.clear(box);
-            box.appendChild(h("h2", { class: "ac_h2", text: "كورساتي" }));
+            box.appendChild(h("h2", { class: "ac_h2", text: "كورساتي وحصصي" }));
             if (!mine.length) box.appendChild(h("p", { class: "ac_empty", text: "لسه مفيش كورسات مفعّلة على حسابك. اشترك في كورس من القايمة اللي تحت." }));
             else box.appendChild(h("div", { class: "ac_grid" }, mine.map(courseCard)));
             root.appendChild(await examsCard());
@@ -194,13 +194,18 @@
             h("span", { class: "ac_course_m", text: E.courseLabel(c) }),
             c.description ? h("span", { class: "ac_course_m", text: c.description }) : null
         ];
+        var isSession = c.section === "sessions";
+        if (c.enrolled && isSession) {
+            inner.push(h("span", { class: "ac_pill", text: c.progressPercent >= 100 ? "حصة · اتشاهدت ✓" : "حصة" }));
+            return h("button", { type: "button", class: "ac_course", onclick: function () { openCourse(c.id); } }, inner);
+        }
         if (c.enrolled) {
             inner.push(h("div", { class: "ac_bar", role: "progressbar", "aria-valuenow": String(c.progressPercent), "aria-valuemin": "0", "aria-valuemax": "100" }, [h("span", { style: "width:" + c.progressPercent + "%" })]));
             inner.push(h("span", { class: "ac_course_m", text: E.num(c.completedCount) + " من " + E.num(c.lessonCount) + " درس (" + E.num(c.progressPercent) + "٪)" }));
             return h("button", { type: "button", class: "ac_course", onclick: function () { openCourse(c.id); } }, inner);
         }
         inner.push(h("span", { class: "ac_pill", text: priceText(c) }));
-        inner.push(h("span", { class: "ac_btn b_dark b_sm", text: "اشترك في الكورس" }));
+        inner.push(h("span", { class: "ac_btn b_dark b_sm", text: isSession ? "اشترك في الحصة" : "اشترك في الكورس" }));
         return h("a", { class: "ac_course", href: "subscribe.html?course=" + encodeURIComponent(c.id), style: "text-decoration:none" }, inner);
     }
 
@@ -218,14 +223,15 @@
         root.appendChild(header());
         var c = current.course;
         document.body.classList.add("cs_on");
+        var single = c.section === "sessions" && current.lessons.length === 1;
         var player = h("div", { class: "ac_player", id: "ac_player" }, [idleScreen()]);
         var list = h("ul", { class: "ac_list", id: "ac_lessons" }, current.lessons.map(function (l, i) { return h("li", null, [lessonBtn(l, i)]); }));
         if (!current.lessons.length) list = h("p", { class: "ac_empty", text: "مفيش دروس منشورة في الكورس ده لسه." });
         root.appendChild(h("div", { class: "cs_head" }, [
             h("div", null, [h("h2", { text: c.title }), h("p", { text: E.courseLabel(c) })]),
-            h("button", { type: "button", class: "ac_btn", text: "رجوع للكورسات", onclick: showHome })
+            h("button", { type: "button", class: "ac_btn", text: single ? "رجوع لحصصي" : "رجوع للكورسات", onclick: showHome })
         ]));
-        root.appendChild(h("div", { class: "cs_device" }, [
+        root.appendChild(h("div", { class: "cs_device" + (single ? " cs_single" : "") }, [
             h("div", { class: "cs_bar", "aria-hidden": "true" }, [h("i"), h("i"), h("i")]),
             h("div", { class: "cs_body" }, [
                 h("div", { class: "cs_main" }, [player]),
@@ -237,6 +243,7 @@
             ])
         ]));
         updateRing();
+        if (single && !current.lessons[0].locked) openLesson(current.lessons[0]);
     }
 
     // شاشة الانتظار قبل ما الطالب يختار درس: مربع أزرق وزرار تشغيل أصفر

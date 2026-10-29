@@ -14,6 +14,7 @@
         return n;
     }
     function card(c, n) {
+        var isSession = c.section === "sessions";
         var d = el("div");
         var a = el("a"); a.href = "dashboard.html?course=" + encodeURIComponent(c.id);
         var img = el("img", "exam" + n + (c.hasCover ? " cvr" : "")); img.alt = c.title; img.loading = "lazy";
@@ -21,11 +22,11 @@
         a.appendChild(img);
         d.appendChild(a);
         d.appendChild(el("p", "name" + n, c.title));
-        var meta = (c.description ? c.description + " - " : "") + E.num(c.lessonCount) + " درس.";
+        var meta = isSession ? (c.description || "حصة فيديو") : (c.description ? c.description + " - " : "") + E.num(c.lessonCount) + " درس.";
         d.appendChild(el("p", "note" + n, meta));
         var price = c.accessMode === "free" ? "مجاني" : (c.accessMode === "code" ? "بالكود" : (c.price > 0 ? E.num(c.price) + " جنيه" : ""));
         if (price) d.appendChild(el("p", "card_price", price));
-        var b = el("a", "buy_btn", "اشترك في الكورس"); b.href = "subscribe.html?course=" + encodeURIComponent(c.id);
+        var b = el("a", "buy_btn", isSession ? "اشترك في الحصة" : "اشترك في الكورس"); b.href = "subscribe.html?course=" + encodeURIComponent(c.id);
         d.appendChild(b);
         return d;
     }

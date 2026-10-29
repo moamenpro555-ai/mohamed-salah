@@ -28,6 +28,7 @@
         var opts = blank ? [option("", "الصف؟", !val)] : [];
         return h("select", { id: id }, opts.concat([1, 2, 3].map(function (g) { return option(g, "الصف " + E.GRADES[g], g === val); })));
     }
+    ui.manageCourse = function (id) { return manageCourse(id); };
     ui.field = field; ui.option = option; ui.fmtDate = fmtDate; ui.placeStage = placeStage; ui.placeGrade = placeGrade;
     ui.getBody = function () { return body; };
     function copyBtn(text) {
@@ -54,7 +55,7 @@
             (function () { return (pw = h("div", { class: "ac_hidden" }, [E.passwordForm({})])); })(),
             (function () { return (tf = h("div", { class: "ac_hidden" })); })()
         ]));
-        var tabs = h("div", { class: "ac_tabs", role: "tablist" }, [["courses", "الكورسات"], ["students", "الطلاب"], ["registrations", "سجل بيانات الطلاب"], ["sales", "سجل المبيعات"], ["exams", "الامتحانات"], ["results", "السجل"]].map(function (t) {
+        var tabs = h("div", { class: "ac_tabs", role: "tablist" }, [["courses", "الكورسات"], ["sessions", "الحصص"], ["students", "الطلاب"], ["registrations", "سجل بيانات الطلاب"], ["sales", "سجل المبيعات"], ["exams", "الامتحانات"], ["results", "السجل"]].map(function (t) {
             return h("button", { type: "button", class: "ac_tab", role: "tab", "aria-selected": String(tab === t[0]), text: t[1] + (t[0] === "registrations" && pendingCount ? " (" + E.num(pendingCount) + " جديد)" : "") + (t[0] === "sales" && ui.pendingSales ? " (" + E.num(ui.pendingSales) + " جديد)" : ""), onclick: function () { tab = t[0]; render(); } });
         }));
         root.appendChild(tabs);
@@ -187,7 +188,7 @@
         var enr = await run(function () { return E.call("GET", "/api/teacher/courses/" + id + "/enrollments"); });
         if (!students.length) await run(async function () { students = (await E.call("GET", "/api/teacher/students?limit=200")).students; });
         E.clear(body);
-        body.appendChild(h("button", { type: "button", class: "ac_btn b_line", text: "رجوع للكورسات", onclick: function () { tab = "courses"; render(); }, style: "margin-bottom:16px" }));
+        body.appendChild(h("button", { type: "button", class: "ac_btn b_line", text: d.course.section === "sessions" ? "رجوع للحصص" : "رجوع للكورسات", onclick: function () { tab = d.course.section === "sessions" ? "sessions" : "courses"; render(); }, style: "margin-bottom:16px" }));
         body.appendChild(courseForm(d.course, function () { return manageCourse(id); }));
         body.appendChild(coverCard(d.course));
         body.appendChild(lessonsCard(d.course, d.lessons));

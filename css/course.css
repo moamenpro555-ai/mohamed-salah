@@ -172,3 +172,7 @@ body.cs_on .ac_wrap{ width: min(1180px, 100%); }
 [data-area] .buy_btn{ text-decoration: none; }
 /* زي الصورة: الفيديو على الشمال وقايمة الدروس على اليمين */
 @media (min-width: 901px){ .cs_body{ grid-template-columns: 330px minmax(0, 1fr); } .cs_side{ order: -1; } }
+
+/* ---------- حصة فيديو واحد: من غير قايمة دروس ولا حلقة تقدّم ---------- */
+.cs_single .cs_side{ display: none; }
+.cs_single .cs_body{ grid-template-columns: minmax(0, 1fr); }
