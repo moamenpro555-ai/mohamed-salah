@@ -44,6 +44,7 @@
             h("div", { class: "ac_top" }, [
                 h("div", null, [h("h1", { class: "ac_h1", text: "لوحة المدرس" }), h("p", { class: "ac_sub", text: user.name + " - " + user.email, dir: "ltr" })]),
                 h("div", { class: "ac_row" }, [
+                    h("a", { class: "ac_btn b_gold", href: "dashboard.html", text: "شوف المنصة كطالب", style: "text-decoration:none" }),
                     h("button", { type: "button", class: "ac_btn b_line", text: "تغيير كلمة السر", onclick: function () { pw.classList.toggle("ac_hidden"); } }),
                     h("button", { type: "button", class: "ac_btn b_line", text: "التحقق بخطوتين", onclick: function () {
                         E.clear(tf);
@@ -93,6 +94,7 @@
                     h("td", null, [h("span", { class: "ac_pill " + (c.isPublished ? "p_ok" : ""), text: c.isPublished ? "منشور" : "مخفي" })]),
                     h("td", null, [h("div", { class: "ac_row" }, [
                         h("button", { type: "button", class: "ac_btn b_dark b_sm", text: "إدارة", onclick: function () { manageCourse(c.id); } }),
+                        h("a", { class: "ac_btn b_gold b_sm", href: "dashboard.html?course=" + encodeURIComponent(c.id), text: "شوفه كطالب", style: "text-decoration:none" }),
                         h("button", { type: "button", class: "ac_btn b_line b_sm", text: c.isPublished ? "إخفاء" : "نشر", onclick: function () {
                             run(async function () { await E.call("POST", "/api/teacher/courses/" + c.id + (c.isPublished ? "/unpublish" : "/publish"), {}); E.toast(c.isPublished ? "اتخفى الكورس" : "اتنشر الكورس"); await coursesView(); });
                         } }),

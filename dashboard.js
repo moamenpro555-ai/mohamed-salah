@@ -104,11 +104,13 @@
 
     function header() {
         // لو لازم يغيّر كلمة السر، النموذج بيظهر تحت في البانر بس (علشان ميتكرّرش)
-        var pwBox = user.mustChangePassword ? null : h("div", { class: "ac_hidden", id: "ac_pwbox" }, [E.passwordForm({})]);
+        var isT = user.role === "teacher";
+        var pwBox = (user.mustChangePassword || isT) ? null : h("div", { class: "ac_hidden", id: "ac_pwbox" }, [E.passwordForm({})]);
         return h("div", { class: "ac_card" }, [
             h("div", { class: "ac_top" }, [
-                h("div", null, [h("h1", { class: "ac_h1", text: "أهلًا يا " + user.name }), h("p", { class: "ac_sub", text: (user.studentCode ? "كود الطالب: #" + user.studentCode + " | " : "") + user.email })]),
+                h("div", null, [h("h1", { class: "ac_h1", text: user.role === "teacher" ? "عرض المنصة كطالب" : "أهلًا يا " + user.name }), h("p", { class: "ac_sub", text: user.role === "teacher" ? "إنت داخل كمدرس: كل الكورسات والدروس مفتوحة ليك (حتى المخفي)، ومفيش اشتراك ولا قفل دروس." : (user.studentCode ? "كود الطالب: #" + user.studentCode + " | " : "") + user.email })]),
                 h("div", { class: "ac_row" }, [
+                    isT ? h("a", { class: "ac_btn b_gold", href: "teacher.html", text: "رجوع للوحة المدرس", style: "text-decoration:none" }) : null,
                     pwBox ? h("button", { type: "button", class: "ac_btn b_line", text: "تغيير كلمة السر", onclick: function () { pwBox.classList.toggle("ac_hidden"); } }) : null,
                     h("button", { type: "button", class: "ac_btn b_dark", text: "تسجيل الخروج", onclick: function () { E.logout(); } })
                 ])
@@ -123,23 +125,24 @@
         document.body.classList.remove("cs_on");
         E.clear(root);
         root.appendChild(header());
-        if (user.mustChangePassword) {
+        if (user.mustChangePassword && user.role !== "teacher") {
             root.appendChild(h("div", { class: "ac_banner", text: "علشان حسابك يبقى آمن، لازم تغيّر كلمة السر المؤقتة قبل ما تكمل." }));
             var f = E.passwordForm({ onDone: function () { location.reload(); } });
             root.appendChild(h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "كلمة سر جديدة" }), f]));
             return;
         }
-        var box = h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "كورساتي وحصصي" }), h("p", { class: "ac_empty", text: "جاري التحميل..." })]);
+        var asT = user.role === "teacher", boxTitle = asT ? "كل الكورسات والحصص" : "كورساتي وحصصي";
+        var box = h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: boxTitle }), h("p", { class: "ac_empty", text: "جاري التحميل..." })]);
         root.appendChild(box);
         try {
             var d = await E.call("GET", "/api/courses");
             var mine = d.courses.filter(function (c) { return c.enrolled; });
             var others = d.courses.filter(function (c) { return !c.enrolled; });
             E.clear(box);
-            box.appendChild(h("h2", { class: "ac_h2", text: "كورساتي وحصصي" }));
-            if (!mine.length) box.appendChild(h("p", { class: "ac_empty", text: "لسه مفيش كورسات مفعّلة على حسابك. اشترك في كورس من القايمة اللي تحت." }));
+            box.appendChild(h("h2", { class: "ac_h2", text: boxTitle }));
+            if (!mine.length) box.appendChild(h("p", { class: "ac_empty", text: asT ? "لسه مفيش كورسات في المنصة." : "لسه مفيش كورسات مفعّلة على حسابك. اشترك في كورس من القايمة اللي تحت." }));
             else box.appendChild(h("div", { class: "ac_grid" }, mine.map(courseCard)));
-            root.appendChild(await examsCard());
+            if (!asT) root.appendChild(await examsCard());
             if (others.length) {
                 var more = h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "كورسات تانية متاحة" }),
                     h("p", { class: "ac_sub", text: "اضغط «اشترك في الكورس» وكمّل بالكود أو بفودافون كاش." }),
@@ -195,6 +198,7 @@
             c.description ? h("span", { class: "ac_course_m", text: c.description }) : null
         ];
         var isSession = c.section === "sessions";
+        if (user.role === "teacher" && !c.isPublished) inner.push(h("span", { class: "ac_pill", text: "كورس مخفي (مش ظاهر للطلاب)" }));
         if (c.enrolled && isSession) {
             inner.push(h("span", { class: "ac_pill", text: c.progressPercent >= 100 ? "حصة · اتشاهدت ✓" : "حصة" }));
             return h("button", { type: "button", class: "ac_course", onclick: function () { openCourse(c.id); } }, inner);
@@ -272,7 +276,8 @@
             h("span", { class: "ic", text: l.locked ? "🔒" : (l.completed ? "✓" : (l.kind === "exam" ? "؟" : "▶")) }),
             h("span", { class: "no", text: "الدرس " + E.num((i || 0) + 1) + " ·" }),
             h("span", { class: "tt", text: l.title }),
-            l.hasQuiz ? h("span", { class: "ac_pill", text: "امتحان" }) : null
+            l.hasQuiz ? h("span", { class: "ac_pill", text: "امتحان" }) : null,
+            l.isPublished === false ? h("span", { class: "ac_pill", text: "مخفي" }) : null
         ]);
         return b;
     }
@@ -435,7 +440,7 @@
         await refreshLessons();
     }
 
-    E.requireUser("student").then(function (u) {
+    E.requireUser().then(function (u) {
         if (!u) return;
         user = u;
         var want = new URLSearchParams(location.search).get("course");
