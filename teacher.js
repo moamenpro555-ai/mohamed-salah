@@ -398,6 +398,7 @@
             if (!(await E.confirmBox("تمسح تسجيل " + r.name + " نهائيًا؟ رقم تليفونه هيبقى متاح للتسجيل تاني.", "احذف"))) return;
             run(async function () { await E.call("DELETE", "/api/teacher/registrations/" + r.id); E.toast("اتحذف التسجيل"); await registrationsView(); });
         } }));
+        if (r.approval === "approved") acts.push(h("button", { type: "button", class: "ac_btn b_bad b_sm", text: "حذف الحساب", onclick: function () { deleteStudent(r, function () { return registrationsView(); }); } }));
         return h("tr", null, [
             h("td", { text: r.studentCode ? "#" + r.studentCode : "-" }), h("td", { text: r.name }), h("td", { text: r.phone || "-", dir: "ltr" }), h("td", { text: r.guardianPhone || "-", dir: "ltr" }), h("td", { text: r.governorate || "-" }), h("td", { text: r.address || "-" }),
             h("td", { text: (E.STAGES[r.stage] || "-") + " - " + (r.grade ? "الصف " + E.GRADES[r.grade] : "-") }), h("td", { text: r.email, dir: "ltr" }),
@@ -426,6 +427,11 @@
         body.appendChild(card);
     }
 
+    async function deleteStudent(s, after) {
+        if (!(await E.confirmBox("تحذف حساب " + s.name + " نهائيًا؟ هيتمسح كل تقدّمه ونتايجه واشتراكاته وسجل مشترياته، ومش هينفع ترجّعه. لو عايز بس تمنعه من الدخول استخدم «إيقاف» بدل الحذف.", "احذف الحساب نهائيًا"))) return;
+        run(async function () { await E.call("DELETE", "/api/teacher/students/" + s.id); E.toast("اتحذف حساب " + s.name); await after(); });
+    }
+
     function studentRow(s) {
         return h("tr", null, [
             h("td", { text: s.studentCode ? "#" + s.studentCode : "-" }), h("td", { text: s.name }), h("td", { dir: "ltr", text: (s.phone ? s.phone + " | " : "") + s.email }), h("td", null, [placeCell(s)]),
@@ -443,7 +449,8 @@
                 h("button", { type: "button", class: "ac_btn b_sm " + (s.isActive ? "b_bad" : "b_gold"), text: s.isActive ? "إيقاف" : "تفعيل", onclick: async function () {
                     if (s.isActive && !(await E.confirmBox("توقف حساب " + s.name + "؟ هيتسجّل خروجه فورًا ومش هيعرف يدخل.", "إيقاف الحساب"))) return;
                     run(async function () { await E.call("PATCH", "/api/teacher/students/" + s.id, { isActive: !s.isActive }); E.toast(s.isActive ? "اتوقف الحساب" : "اتفعّل الحساب"); await studentsView(); });
-                } })
+                } }),
+                h("button", { type: "button", class: "ac_btn b_line b_sm", text: "حذف الحساب", onclick: function () { deleteStudent(s, function () { return studentsView(); }); } })
             ])])
         ]);
     }
