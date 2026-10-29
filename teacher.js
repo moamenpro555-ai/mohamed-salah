@@ -234,33 +234,105 @@
         var msg = h("p", { class: "ac_msg", role: "alert" });
         var submit = h("button", { type: "submit", class: "ac_btn b_dark", text: "إضافة الدرس" });
         var cancel = h("button", { type: "button", class: "ac_btn b_line ac_hidden", text: "إلغاء التعديل", onclick: function () { reset(); } });
-        // ---- امتحان قصير على الدرس (اختياري) ----
-        var quizQs = [];
+        // ---- امتحان على الدرس (اختياري): نفس نظام امتحانات الحصة (أسئلة مكتوبة + لصق + رفع ملف + أجزاء + شرح) ----
+        var quizQs = []; // { section, q, options[], answer, why }
         var passIn = h("input", { id: "lf_pass", type: "number", min: "0", max: "100", value: "0" });
+        var showAnsIn = h("input", { type: "checkbox", id: "lf_showans" }); showAnsIn.checked = true;
         var quizBox = h("div", { class: "ac_quiz", id: "lf_quiz" });
+        var MAXQ = 100;
+        function quizFromApi(quiz) { return (quiz || []).map(function (x) { return { section: x.section || "", q: x.text, options: x.choices.slice(), answer: x.answer, why: x.why || "" }; }); }
+        function quizToApi(qs) {
+            return qs.map(function (x) {
+                var o = { text: x.q.trim(), choices: x.options.map(function (c) { return c.trim(); }), answer: x.answer };
+                if (x.section.trim()) o.section = x.section.trim();
+                if (x.why.trim()) o.why = x.why.trim();
+                return o;
+            });
+        }
+        function blankQ() { return { section: quizQs.length ? quizQs[quizQs.length - 1].section : "", q: "", options: ["", "", "", ""], answer: -1, why: "" }; }
         function renderQuiz() {
             E.clear(quizBox);
             if (!quizQs.length) quizBox.appendChild(h("p", { class: "ac_sub", text: "مفيش امتحان على الدرس ده. لو ضفت أسئلة، الطالب لازم يمتحن عليه عشان يفتح الدرس اللي بعده." }));
+            else quizBox.appendChild(h("p", { class: "ac_sub", id: "lq_count", text: E.num(quizQs.length) + " سؤال" }));
             quizQs.forEach(function (q, qi) {
-                var qt = h("textarea", { maxlength: "500", "aria-label": "نص السؤال " + (qi + 1), placeholder: "نص السؤال" }); qt.value = q.text;
-                qt.addEventListener("input", function () { q.text = qt.value; });
-                var rows = q.choices.map(function (c, ci) {
-                    var r = h("input", { type: "radio", name: "lq_a" + qi, "aria-label": "الإجابة الصح" });
-                    r.checked = q.answer === ci; r.addEventListener("change", function () { q.answer = ci; });
-                    var t = h("input", { type: "text", maxlength: "200", value: c, placeholder: "الاختيار " + E.LETTERS[ci], "aria-label": "اختيار " + E.LETTERS[ci] });
-                    t.addEventListener("input", function () { q.choices[ci] = t.value; });
-                    return h("div", { class: "ac_qrow" }, [r, t,
-                        q.choices.length > 2 ? h("button", { type: "button", class: "ac_btn b_line b_sm", text: "حذف", onclick: function () { q.choices.splice(ci, 1); if (q.answer === ci) q.answer = -1; else if (q.answer > ci) q.answer -= 1; renderQuiz(); } }) : null]);
+                var sec = h("input", { class: "ac_in", placeholder: "عنوان الجزء (اختياري) مثل: الجزء الأول", value: q.section, maxlength: "200", "aria-label": "عنوان الجزء" });
+                sec.addEventListener("input", function () { q.section = sec.value; });
+                var qt = h("textarea", { class: "tq_q", placeholder: "نص السؤال", maxlength: "1500", "aria-label": "نص السؤال " + (qi + 1) }); qt.value = q.q;
+                qt.addEventListener("input", function () { q.q = qt.value; });
+                var opts = h("div", { class: "tq_opts" });
+                q.options.forEach(function (o, oi) {
+                    var r = h("input", { type: "radio", name: "lq_a" + qi, "aria-label": "الإجابة الصح هي " + E.LETTERS[oi] }); r.checked = q.answer === oi;
+                    r.addEventListener("change", function () { q.answer = oi; });
+                    var t = h("input", { class: "ac_in", placeholder: "الاختيار " + E.LETTERS[oi], value: o, maxlength: "500", "aria-label": "الاختيار " + E.LETTERS[oi] + " للسؤال " + (qi + 1) });
+                    t.addEventListener("input", function () { q.options[oi] = t.value; });
+                    var del = h("button", { type: "button", class: "ac_btn b_line b_sm", text: "×", "aria-label": "احذف الاختيار", onclick: function () {
+                        if (q.options.length <= 2) { E.toast("لازم اختيارين على الأقل", "bad"); return; }
+                        q.options.splice(oi, 1); if (q.answer === oi) q.answer = -1; else if (q.answer > oi) q.answer--; renderQuiz();
+                    } });
+                    opts.appendChild(h("div", { class: "tq_opt" }, [h("label", { class: "tq_ok", title: "الإجابة الصح" }, [r, h("span", { text: E.LETTERS[oi] })]), t, del]));
                 });
-                quizBox.appendChild(h("div", { class: "ac_qcard" }, [
-                    h("div", { class: "ac_row" }, [h("strong", { text: "سؤال " + E.num(qi + 1) }),
-                        h("button", { type: "button", class: "ac_btn b_bad b_sm", text: "حذف السؤال", onclick: function () { quizQs.splice(qi, 1); renderQuiz(); } })]),
-                    qt, h("p", { class: "ac_sub", text: "علّم الدايرة جنب الإجابة الصح:" })].concat(rows, [
-                    q.choices.length < 5 ? h("button", { type: "button", class: "ac_btn b_line b_sm", text: "إضافة اختيار", onclick: function () { q.choices.push(""); renderQuiz(); } }) : null])));
+                var why = h("input", { class: "ac_in", placeholder: "شرح الإجابة (اختياري - بيظهر للطالب بعد التسليم لو فعّلت إظهار الإجابات)", value: q.why, maxlength: "1500", "aria-label": "شرح" });
+                why.addEventListener("input", function () { q.why = why.value; });
+                function move(dir) { var j = qi + dir; if (j < 0 || j >= quizQs.length) return; var t = quizQs[qi]; quizQs[qi] = quizQs[j]; quizQs[j] = t; renderQuiz(); }
+                quizBox.appendChild(h("div", { class: "tq_card" }, [
+                    h("div", { class: "ac_top" }, [h("b", { text: "سؤال " + E.num(qi + 1) }), h("div", { class: "ac_row" }, [
+                        h("button", { type: "button", class: "ac_btn b_line b_sm", text: "↑", "aria-label": "فوق", onclick: function () { move(-1); } }),
+                        h("button", { type: "button", class: "ac_btn b_line b_sm", text: "↓", "aria-label": "تحت", onclick: function () { move(1); } }),
+                        h("button", { type: "button", class: "ac_btn b_bad b_sm", text: "حذف", onclick: function () { quizQs.splice(qi, 1); renderQuiz(); } })
+                    ])]),
+                    sec, qt, opts,
+                    h("div", { class: "ac_row" }, [q.options.length < 5 ? h("button", { type: "button", class: "ac_btn b_line b_sm", text: "+ اختيار", onclick: function () { q.options.push(""); renderQuiz(); } }) : null,
+                        h("span", { class: "ac_sub", text: "علّم الدايرة جنب الإجابة الصح" })]),
+                    why
+                ]));
             });
-            if (quizQs.length < 20) quizBox.appendChild(h("button", { type: "button", class: "ac_btn b_gold b_sm", text: "إضافة سؤال", onclick: function () { quizQs.push({ text: "", choices: ["", "", "", ""], answer: -1 }); renderQuiz(); } }));
+            if (quizQs.length < MAXQ) quizBox.appendChild(h("button", { type: "button", class: "ac_btn b_gold b_sm", id: "lq_add", text: "إضافة سؤال", onclick: function () { quizQs.push(blankQ()); renderQuiz(); } }));
         }
         renderQuiz();
+        // لصق الأسئلة دفعة واحدة
+        var lpaste = h("textarea", { id: "lq_paste", class: "tq_paste", rows: "6", placeholder: "اكتب كل سؤال وتحته اختياراته، وعلّم الإجابة الصح بنجمة * في آخر الاختيار (أو سطر «الإجابة: ب»). الشرح اختياري بسطر «شرح: ...». عنوان الجزء بسطر يبدأ بـ #.\n\n1- سؤال تجريبي؟\nأ) اختيار\nب) اختيار صح *\nج) اختيار\nد) اختيار" });
+        var lpmsg = h("p", { class: "ac_msg", role: "status" });
+        function addParsed(list) { list.forEach(function (q) { if (quizQs.length < MAXQ) quizQs.push({ section: q.section || "", q: q.q, options: q.options.slice(), answer: q.answer, why: q.why || "" }); }); renderQuiz(); }
+        var pasteBox = h("div", { class: "tq_import" }, [
+            h("h4", { class: "ac_h2", text: "الصق الأسئلة دفعة واحدة (أسهل)" }),
+            h("p", { class: "ac_sub", text: "انسخ الأسئلة من Word أو أي مكان والصقها هنا، وهتتحوّل لأسئلة تقدر تراجعها." }),
+            lpaste, lpmsg,
+            h("div", { class: "ac_row" }, [h("button", { type: "button", class: "ac_btn b_gold b_sm", id: "lq_parse", text: "حوّل لأسئلة", onclick: function () {
+                if (!window.ExamImport) { lpmsg.textContent = "أداة القراءة ما اتحمّلتش. حدّث الصفحة وجرّب تاني."; return; }
+                var got = window.ExamImport.parseText(lpaste.value).questions;
+                if (!got.length) { lpmsg.textContent = "ما لقيتش أسئلة. اتأكد من الشكل (سؤال ثم اختيارات أ) ب) ج) د))."; return; }
+                var noAns = got.filter(function (q) { return q.answer < 0; }).length;
+                addParsed(got); lpaste.value = "";
+                lpmsg.textContent = "اتضاف " + E.num(got.length) + " سؤال." + (noAns ? " " + E.num(noAns) + " سؤال محتاج تحدد إجابته الصح." : "");
+            } })])
+        ]);
+        // رفع ملف الأسئلة (Word / PDF / صورة)
+        var lfile = h("input", { type: "file", id: "lq_file", accept: ".docx,.pdf,.txt,image/png,image/jpeg,image/webp" });
+        var lfmsg = h("p", { class: "ac_msg", role: "status", id: "lq_fmsg" });
+        var lfbtn = h("button", { type: "button", class: "ac_btn b_gold b_sm", id: "lq_go", text: "اقرا الملف وطلّع الأسئلة" });
+        lfbtn.addEventListener("click", async function () {
+            var f = lfile.files[0];
+            if (!f) { lfmsg.textContent = "اختار الملف الأول."; return; }
+            if (!window.ExamImport) { lfmsg.textContent = "أداة القراءة ما اتحمّلتش. حدّث الصفحة وجرّب تاني."; return; }
+            if (f.size > 15 * 1048576) { lfmsg.textContent = "الملف أكبر من 15 ميجا."; return; }
+            lfbtn.disabled = true; lfmsg.textContent = "بقرأ الملف... ممكن ياخد شوية لو صورة أو PDF متصوّر.";
+            try {
+                var text = await window.ExamImport.readFile(f, function (m) { lfmsg.textContent = m; });
+                var r = window.ExamImport.parseText(text);
+                if (!r.questions.length) { lpaste.value = text; lfmsg.textContent = "ما قدرتش أطلّع أسئلة بشكل تلقائي. حطيت النص اللي قريته في خانة اللصق فوق. عدّله بالشكل المكتوب هناك وداس «حوّل لأسئلة»."; lpaste.scrollIntoView({ block: "center" }); return; }
+                var base = quizQs.length;
+                addParsed(r.questions);
+                lfmsg.textContent = "اتضاف " + E.num(r.questions.length) + " سؤال. راجعهم كلهم قبل الحفظ، القراءة التلقائية ممكن تغلط في كلمة."
+                    + (r.noAnswer ? " " + E.num(r.noAnswer) + " سؤال محتاج تحدد إجابته الصح." : "") + (r.skipped ? " " + E.num(r.skipped) + " سؤال اتخطّى (من غير اختيارات واضحة)." : "");
+                E.toast("اتضاف " + E.num(r.questions.length) + " سؤال");
+                var first = quizBox.querySelectorAll(".tq_card")[base]; if (first) first.scrollIntoView({ block: "start" });
+            } catch (e) { lfmsg.textContent = (e && e.message) || "حصل خطأ في قراءة الملف."; }
+            finally { lfbtn.disabled = false; }
+        });
+        var fileBox = h("div", { class: "tq_import" }, [].concat(
+            [h("h4", { class: "ac_h2", text: "ارفع ملف الأسئلة وهتتكتب لوحدها (مجاني)" }),
+                h("p", { class: "ac_sub", text: "الأفضل ملف Word (docx) أو PDF مكتوب بالكمبيوتر. الأسئلة لازم تكون برقم وتحتها اختيارات أ) ب) ج) د)." })],
+            field("الملف (Word أو PDF أو صورة)", "lq_file", lfile), [lfmsg, h("div", { class: "ac_row" }, [lfbtn])]));
         var pdfBox = h("div", { class: "ac_pdfbox", id: "lf_pdf" });
         function renderPdf() {
             E.clear(pdfBox);
@@ -286,15 +358,16 @@
             field("عنوان الدرس", "lf_title", title), field("وصف (اختياري)", "lf_desc", desc),
             field("النوع", "lf_kind", kind), field("طريقة رابط الفيديو", "lf_prov", prov),
             field("رابط الفيديو / الامتحان (يوتيوب أو جوجل درايف أو رابط mp4 مباشر)", "lf_ref", ref), field("المدة بالدقايق (اختياري)", "lf_mins", mins),
-            [h("h3", { class: "ac_h2", text: "امتحان على الدرس (اختياري، لحد 20 سؤال)", style: "margin-top:14px" }), quizBox],
+            [h("h3", { class: "ac_h2", text: "امتحان على الدرس (اختياري، لحد 100 سؤال)", style: "margin-top:14px" }), quizBox, pasteBox, fileBox],
             field("نسبة النجاح المطلوبة لفتح الدرس اللي بعده (0 = يكفي إنه يمتحن)", "lf_pass", passIn),
+            [h("label", { class: "ac_check" }, [showAnsIn, "اظهر الإجابات الصحيحة والشرح للطالب بعد التسليم"])],
             [h("h3", { class: "ac_h2", text: "ملف PDF للدرس (اختياري)", style: "margin-top:14px" }), pdfBox],
             [h("label", { class: "ac_check" }, [pub, "منشور"]), msg, h("div", { class: "ac_row" }, [submit, cancel])]));
-        function reset() { editing = null; form.reset(); pub.checked = true; quizQs = []; passIn.value = "0"; renderQuiz(); renderPdf(); submit.textContent = "إضافة الدرس"; cancel.classList.add("ac_hidden"); document.getElementById("lf_h").textContent = "إضافة درس"; msg.textContent = ""; }
+        function reset() { editing = null; form.reset(); pub.checked = true; quizQs = []; passIn.value = "0"; showAnsIn.checked = true; lpaste.value = ""; lpmsg.textContent = ""; lfmsg.textContent = ""; lfile.value = ""; renderQuiz(); renderPdf(); submit.textContent = "إضافة الدرس"; cancel.classList.add("ac_hidden"); document.getElementById("lf_h").textContent = "إضافة درس"; msg.textContent = ""; }
         function fill(l) {
             editing = l; title.value = l.title; desc.value = l.description || ""; kind.value = l.kind; prov.value = l.videoProvider;
             ref.value = l.videoRef || ""; mins.value = l.durationSeconds ? Math.round(l.durationSeconds / 60) : ""; pub.checked = l.isPublished;
-            quizQs = l.quiz ? JSON.parse(JSON.stringify(l.quiz)) : []; passIn.value = String(l.quizPassPercent || 0); renderQuiz(); renderPdf();
+            quizQs = quizFromApi(l.quiz); passIn.value = String(l.quizPassPercent || 0); showAnsIn.checked = !!l.quizShowAnswers; renderQuiz(); renderPdf();
             submit.textContent = "حفظ الدرس"; cancel.classList.remove("ac_hidden"); document.getElementById("lf_h").textContent = "تعديل الدرس";
             form.scrollIntoView({ behavior: "smooth", block: "center" });
         }
@@ -308,14 +381,15 @@
             if (mins.value !== "") data.durationSeconds = Math.round(Number(mins.value) * 60);
             for (var qi = 0; qi < quizQs.length; qi++) {
                 var q = quizQs[qi];
-                if (!q.text.trim()) { msg.textContent = "اكتب نص السؤال " + (qi + 1) + "."; return; }
-                if (q.choices.some(function (c) { return !c.trim(); })) { msg.textContent = "املأ كل اختيارات السؤال " + (qi + 1) + " أو احذف الفاضي."; return; }
-                if (!(q.answer >= 0 && q.answer < q.choices.length)) { msg.textContent = "علّم الإجابة الصح للسؤال " + (qi + 1) + "."; return; }
+                if (!q.q.trim()) { msg.textContent = "السؤال " + E.num(qi + 1) + ": اكتب نص السؤال."; return; }
+                if (q.options.some(function (c) { return !c.trim(); })) { msg.textContent = "السؤال " + E.num(qi + 1) + ": في اختيار فاضي (املاه أو احذفه)."; return; }
+                if (!(q.answer >= 0 && q.answer < q.options.length)) { msg.textContent = "السؤال " + E.num(qi + 1) + ": حدّد الإجابة الصح."; return; }
             }
             var pass = Number(passIn.value);
             if (!Number.isInteger(pass) || pass < 0 || pass > 100) { msg.textContent = "نسبة النجاح من 0 لـ 100."; return; }
             data.quizPassPercent = pass;
-            if (quizQs.length) data.quiz = quizQs.map(function (x) { return { text: x.text.trim(), choices: x.choices.map(function (c) { return c.trim(); }), answer: x.answer }; });
+            data.quizShowAnswers = showAnsIn.checked;
+            if (quizQs.length) data.quiz = quizToApi(quizQs);
             else if (editing) data.quiz = null;
             try {
                 if (editing) await E.call("PATCH", "/api/teacher/lessons/" + editing.id, data);

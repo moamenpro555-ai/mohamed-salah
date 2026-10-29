@@ -327,7 +327,10 @@
             E.clear(host);
             var picks = new Array(q.questions.length).fill(null);
             var msg = h("p", { class: "ac_msg", role: "alert" });
+            var lastSec = "";
             q.questions.forEach(function (it, qi) {
+                if (it.section && it.section !== lastSec) host.appendChild(h("h4", { class: "ac_h2", text: it.section }));
+                lastSec = it.section || lastSec;
                 var box = h("fieldset", { class: "ac_qa", id: "qa_" + qi }, [h("legend", { text: E.num(qi + 1) + ". " + it.text })]);
                 it.choices.forEach(function (c, ci) {
                     var r = h("input", { type: "radio", name: "qa" + qi, value: String(ci) });
@@ -337,6 +340,7 @@
                 host.appendChild(box);
             });
             host.appendChild(msg);
+            lastQuiz = q;
             var send = h("button", { type: "button", class: "ac_btn b_dark", text: "تسليم الإجابات" });
             host.appendChild(send);
             send.addEventListener("click", async function () {
@@ -345,11 +349,12 @@
                 send.disabled = true; msg.textContent = "";
                 try {
                     var r = await E.call("POST", "/api/lessons/" + encodeURIComponent(l.id) + "/quiz/submit", { answers: picks });
-                    showResult(r);
+                    showResult(r, picks);
                 } catch (e) { msg.textContent = e.message || "حصل خطأ"; send.disabled = false; }
             });
         }
-        function showResult(r) {
+        var lastQuiz = null;
+        function showResult(r, picks) {
             var a = r.attempt;
             E.clear(host);
             host.appendChild(h("div", { class: "ac_result " + (a.passed ? "r_ok" : "r_bad") }, [
@@ -357,6 +362,16 @@
                 h("p", { text: a.passed ? "برافو! نجحت." : "لسه ما وصلتش لنسبة النجاح (" + E.num(a.passPercent) + "٪)." }),
                 r.wrong.length ? h("p", { class: "ac_sub", text: "الأسئلة اللي محتاجة مراجعة: " + r.wrong.map(function (n) { return E.num(n); }).join("، ") }) : null
             ]));
+            // مراجعة الإجابات والشرح (لو المدرس فعّل إظهار الإجابات): نفس شكل مراجعة الامتحانات
+            if (r.review && lastQuiz) {
+                lastQuiz.questions.forEach(function (it, qi) {
+                    var rv = r.review[qi] || {}, mine = picks ? picks[qi] : null, ok = mine === rv.answer;
+                    var line = [h("strong", { text: E.num(qi + 1) + ". " + it.text }),
+                        h("p", { class: "ac_sub", text: (ok ? "✔ إجابتك صح: " : "✘ الإجابة الصح: ") + E.LETTERS[rv.answer] + ") " + it.choices[rv.answer] + (!ok && mine !== null && mine !== undefined ? " (إجابتك: " + E.LETTERS[mine] + ")" : (!ok ? " (ما جاوبتش)" : "")) })];
+                    if (rv.why) line.push(h("p", { class: "ac_sub", text: "الشرح: " + rv.why }));
+                    host.appendChild(h("div", { class: "ac_qa" }, line));
+                });
+            }
             if (a.passed) {
                 l.completed = true;
                 E.toast("اتفتح الدرس اللي بعده");
