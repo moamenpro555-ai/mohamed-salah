@@ -120,6 +120,7 @@
     async function showHome() {
         window.clearInterval(saveTimer);
         current = null; activeLesson = null;
+        document.body.classList.remove("cs_on");
         E.clear(root);
         root.appendChild(header());
         if (user.mustChangePassword) {
@@ -216,19 +217,45 @@
         E.clear(root);
         root.appendChild(header());
         var c = current.course;
-        var player = h("div", { class: "ac_player", id: "ac_player" }, [h("p", { class: "ac_empty", text: "اختار درس من القايمة." })]);
-        var list = h("ul", { class: "ac_list", id: "ac_lessons" }, current.lessons.map(function (l) { return h("li", null, [lessonBtn(l)]); }));
+        document.body.classList.add("cs_on");
+        var player = h("div", { class: "ac_player", id: "ac_player" }, [idleScreen()]);
+        var list = h("ul", { class: "ac_list", id: "ac_lessons" }, current.lessons.map(function (l, i) { return h("li", null, [lessonBtn(l, i)]); }));
         if (!current.lessons.length) list = h("p", { class: "ac_empty", text: "مفيش دروس منشورة في الكورس ده لسه." });
-        root.appendChild(h("div", { class: "ac_card" }, [
-            h("div", { class: "ac_top" }, [
-                h("div", null, [h("h2", { class: "ac_h1", text: c.title }), h("p", { class: "ac_sub", text: E.courseLabel(c) })]),
-                h("button", { type: "button", class: "ac_btn b_line", text: "رجوع للكورسات", onclick: showHome })
+        root.appendChild(h("div", { class: "cs_head" }, [
+            h("div", null, [h("h2", { text: c.title }), h("p", { text: E.courseLabel(c) })]),
+            h("button", { type: "button", class: "ac_btn", text: "رجوع للكورسات", onclick: showHome })
+        ]));
+        root.appendChild(h("div", { class: "cs_device" }, [
+            h("div", { class: "cs_bar", "aria-hidden": "true" }, [h("i"), h("i"), h("i")]),
+            h("div", { class: "cs_body" }, [
+                h("div", { class: "cs_main" }, [player]),
+                h("div", { class: "cs_side" }, [
+                    h("div", { class: "cs_ring", id: "cs_ring", role: "img", "aria-label": "نسبة تقدّمك في الكورس" }, [h("b", { text: "0٪" })]),
+                    h("p", { class: "cs_count", id: "cs_count" }),
+                    list
+                ])
             ])
         ]));
-        root.appendChild(h("div", { class: "ac_split" }, [h("div", { class: "ac_card" }, [player]), h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: "الدروس" }), list])]));
+        updateRing();
     }
 
-    function lessonBtn(l) {
+    // شاشة الانتظار قبل ما الطالب يختار درس: مربع أزرق وزرار تشغيل أصفر
+    function idleScreen() {
+        return h("div", { class: "cs_idle" }, [h("div", { class: "cs_play", "aria-hidden": "true" }), h("p", { text: "اختار درس من القايمة وابدأ." })]);
+    }
+    // حلقة التقدّم (٪) وعدّاد الدروس المكتملة
+    function updateRing() {
+        var ring = document.getElementById("cs_ring");
+        if (!ring || !current) return;
+        var all = current.lessons.length, done = current.lessons.filter(function (x) { return x.completed; }).length;
+        var p = all ? Math.round(done * 100 / all) : 0;
+        ring.style.setProperty("--p", String(p));
+        ring.firstChild.textContent = E.num(p) + "٪";
+        var t = document.getElementById("cs_count");
+        if (t) t.textContent = E.num(done) + " من " + E.num(all) + " درس";
+    }
+
+    function lessonBtn(l, i) {
         var b = h("button", { type: "button", class: "ac_lesson" + (l.completed ? " is_done" : "") + (l.locked ? " is_locked" : ""), "data-id": l.id,
             "aria-disabled": l.locked ? "true" : null,
             onclick: function () {
@@ -236,7 +263,8 @@
                 openLesson(l);
             } }, [
             h("span", { class: "ic", text: l.locked ? "🔒" : (l.completed ? "✓" : (l.kind === "exam" ? "؟" : "▶")) }),
-            h("span", { text: l.title }),
+            h("span", { class: "no", text: "الدرس " + E.num((i || 0) + 1) + " ·" }),
+            h("span", { class: "tt", text: l.title }),
             l.hasQuiz ? h("span", { class: "ac_pill", text: "امتحان" }) : null
         ]);
         return b;
@@ -251,11 +279,12 @@
             var ul = document.getElementById("ac_lessons");
             if (!ul) return;
             E.clear(ul);
-            d.lessons.forEach(function (x) {
-                var li = h("li", null, [lessonBtn(x)]);
+            d.lessons.forEach(function (x, i) {
+                var li = h("li", null, [lessonBtn(x, i)]);
                 ul.appendChild(li);
                 if (activeLesson && x.id === activeLesson.id) { li.firstChild.classList.add("is_on"); activeLesson = x; }
             });
+            updateRing();
         } catch (e) { /* القايمة هتتحدّث في المرة الجاية */ }
     }
 
