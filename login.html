@@ -38,6 +38,15 @@
                     <p class="ac_msg" id="ac_err" role="alert"></p>
                     <button type="submit" class="ac_btn b_dark" id="ac_go">دخول</button>
                 </form>
+                <form class="ac_form ac_hidden" id="ac_2fa" novalidate>
+                    <p class="ac_sub">التحقق بخطوتين: افتح تطبيق الـ Authenticator على موبايلك واكتب الكود المكوّن من ٦ أرقام.</p>
+                    <label for="ac_code">كود التحقق</label>
+                    <input type="text" id="ac_code" autocomplete="one-time-code" inputmode="text" dir="ltr" maxlength="32" placeholder="123456" required>
+                    <p class="ac_sub">ضاع الموبايل؟ اكتب واحد من الأكواد الاحتياطية (xxxxx-xxxxx).</p>
+                    <p class="ac_msg" id="ac_err2" role="alert"></p>
+                    <button type="submit" class="ac_btn b_dark" id="ac_go2">تأكيد</button>
+                    <button type="button" class="ac_btn b_line" id="ac_back">رجوع</button>
+                </form>
                 <p class="ac_sub">لسه معندكش حساب؟ <a href="register.html" class="ac_a">إنشاء حساب جديد</a></p>
                 <p class="ac_sub">نسيت كلمة السر؟ كلّم المدرس وهيبعتلك رابط جديد.</p>
             </div>

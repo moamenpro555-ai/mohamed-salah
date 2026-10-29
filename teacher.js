@@ -44,10 +44,15 @@
                 h("div", null, [h("h1", { class: "ac_h1", text: "لوحة المدرس" }), h("p", { class: "ac_sub", text: user.name + " - " + user.email, dir: "ltr" })]),
                 h("div", { class: "ac_row" }, [
                     h("button", { type: "button", class: "ac_btn b_line", text: "تغيير كلمة السر", onclick: function () { pw.classList.toggle("ac_hidden"); } }),
+                    h("button", { type: "button", class: "ac_btn b_line", text: "التحقق بخطوتين", onclick: function () {
+                        E.clear(tf);
+                        if (tf.classList.toggle("ac_hidden") === false && ui.twoFactorPanel) tf.appendChild(ui.twoFactorPanel());
+                    } }),
                     h("button", { type: "button", class: "ac_btn b_dark", text: "تسجيل الخروج", onclick: function () { E.logout(); } })
                 ])
             ]),
-            (function () { return (pw = h("div", { class: "ac_hidden" }, [E.passwordForm({})])); })()
+            (function () { return (pw = h("div", { class: "ac_hidden" }, [E.passwordForm({})])); })(),
+            (function () { return (tf = h("div", { class: "ac_hidden" })); })()
         ]));
         var tabs = h("div", { class: "ac_tabs", role: "tablist" }, [["courses", "الكورسات"], ["students", "الطلاب"], ["registrations", "سجل بيانات الطلاب"], ["sales", "سجل المبيعات"], ["exams", "الامتحانات"], ["results", "السجل"]].map(function (t) {
             return h("button", { type: "button", class: "ac_tab", role: "tab", "aria-selected": String(tab === t[0]), text: t[1] + (t[0] === "registrations" && pendingCount ? " (" + E.num(pendingCount) + " جديد)" : "") + (t[0] === "sales" && ui.pendingSales ? " (" + E.num(ui.pendingSales) + " جديد)" : ""), onclick: function () { tab = t[0]; render(); } });
@@ -56,7 +61,7 @@
         body = h("div", { id: "ac_body" });
         root.appendChild(body);
     }
-    var pw;
+    var pw, tf;
     var pendingCount = 0, regFilter = "pending", regQuery = "";
 
     async function render() {

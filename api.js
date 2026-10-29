@@ -136,6 +136,13 @@
         },
         login: async function (identifier, password) {
             var d = await call("POST", "/api/auth/login", { identifier: identifier, password: password });
+            if (d.twoFactorRequired) return { twoFactorRequired: true, challenge: d.challenge }; // المدرس: لسه محتاج كود التحقق
+            csrf = d.csrfToken;
+            return d.user;
+        },
+        // الخطوة التانية للمدرس: كود التطبيق أو كود احتياطي
+        login2fa: async function (challenge, code) {
+            var d = await call("POST", "/api/auth/login/2fa", { challenge: challenge, code: code });
             csrf = d.csrfToken;
             return d.user;
         },

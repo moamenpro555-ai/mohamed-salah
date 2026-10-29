@@ -262,3 +262,13 @@
 .tq_ok input{ width:18px; height:18px; accent-color:#0a6b4f; }
 .tq_paste{ width:100%; padding:10px; border-radius:10px; border:1px solid #c9cbd6; font:inherit; direction:rtl; }
 .tq_import{ display:grid; gap:8px; }
+
+/* ===== التحقق بخطوتين (لوحة المدرس) ===== */
+.tf_panel{ margin-top:14px; }
+.tf_steps{ margin:8px 22px 14px; line-height:1.9; }
+.tf_setup{ display:flex; gap:20px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+.tf_qr{ width:216px; height:216px; max-width:100%; border:2px solid var(--ms-ink,#0b1033); border-radius:12px; background:#fff; }
+.tf_form{ max-width:420px; margin-top:12px; }
+.tf_form input{ letter-spacing:2px; }
+.tf_list{ list-style:none; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:10px 0 14px; font-size:18px; font-weight:700; }
+.tf_list li{ background:#f1f2f7; border-radius:10px; padding:8px 12px; text-align:center; user-select:all; }
