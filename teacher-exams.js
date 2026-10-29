@@ -35,7 +35,7 @@
         box.appendChild(h("div", { class: "ac_card" }, [
             h("div", { class: "ac_top" }, [
                 h("div", null, [h("h2", { class: "ac_h2", text: "الامتحانات" }),
-                    h("p", { class: "ac_sub", text: "اكتب الأسئلة والإجابات هنا وتظهر للطالب بنفس شكل امتحان الحصة (في امتحانات الحصة أو الشهر). أو ارفع ورقة (صور أو PDF) واكتب مفتاح الإجابات وتظهر في قسم «واجب» للمرحلة والصف اللي تحدده." })]),
+                    h("p", { class: "ac_sub", text: "ارفع ملف الأسئلة (Word أو PDF أو صورة) وهتتحوّل لأسئلة لوحدها، أو اكتبها بإيدك، وتظهر للطالب بنفس شكل امتحان الحصة (في امتحانات الحصة أو الشهر). أو ارفع ورقة (صور أو PDF) واكتب مفتاح الإجابات وتظهر في قسم «واجب» للمرحلة والصف اللي تحدده." })]),
                 h("div", { class: "ac_row" }, [
                     h("button", { type: "button", class: "ac_btn b_dark", id: "ex_new_typed", text: "امتحان جديد (أكتب الأسئلة)", onclick: function () { typedEditor(box, null); } }),
                     h("button", { type: "button", class: "ac_btn b_line", id: "ex_new_paper", text: "واجب بورقة مرفوعة", onclick: function () { editor(box, null); } })
@@ -166,6 +166,7 @@
     var WHY_RE = /^\s*(?:ال)?شرح\s*[:：]\s*(.*)$/;
     var ANS_RE = /^\s*(?:ال)?إجابة(?:\s+(?:الصح|الصحيحة))?\s*[:：]\s*(هـ|[أابجدهa-eA-E])/;
     function parseQuestions(text) {
+        if (window.ExamImport) return window.ExamImport.parseText(text).questions;
         var out = [], section = "", cur = null, inWhy = false;
         function flush() { if (cur && (cur.q || cur.options.length)) out.push(cur); cur = null; inWhy = false; }
         text.replace(/\r/g, "").split("\n").forEach(function (raw) {
@@ -265,6 +266,43 @@
             } })])
         ]);
 
+        // ---- رفع ملف الأسئلة (Word / PDF / صورة) واستخراج الأسئلة تلقائيًا، مجانًا وجوه المتصفح ----
+        var fFile = h("input", { type: "file", id: "fi_file", accept: ".docx,.pdf,.txt,image/png,image/jpeg,image/webp" });
+        var fMsg = h("p", { class: "ac_msg", role: "status", id: "fi_msg" });
+        var fBtn = h("button", { type: "button", class: "ac_btn b_gold", id: "fi_go", text: "اقرا الملف وطلّع الأسئلة" });
+        fBtn.addEventListener("click", async function () {
+            var f = fFile.files[0];
+            if (!f) { fMsg.textContent = "اختار الملف الأول."; return; }
+            if (!window.ExamImport) { fMsg.textContent = "أداة القراءة ما اتحمّلتش. حدّث الصفحة وجرّب تاني."; return; }
+            if (f.size > 15 * 1048576) { fMsg.textContent = "الملف أكبر من 15 ميجا."; return; }
+            fBtn.disabled = true; fMsg.textContent = "بقرأ الملف... ممكن ياخد شوية لو صورة أو PDF متصوّر.";
+            try {
+                var text = await window.ExamImport.readFile(f, function (m) { fMsg.textContent = m; });
+                var r = window.ExamImport.parseText(text);
+                if (!r.questions.length) {
+                    paste.value = text;
+                    fMsg.textContent = "ما قدرتش أطلّع أسئلة بشكل تلقائي. حطيت النص اللي قريته في خانة اللصق تحت. عدّله بالشكل المكتوب هناك وداس «حوّل لأسئلة».";
+                    paste.scrollIntoView({ block: "center" });
+                    return;
+                }
+                var base = qs.length;
+                r.questions.forEach(function (q) { qs.push(q); });
+                if (!title.value.trim()) title.value = f.name.replace(/\.[^.]+$/, "").slice(0, 200);
+                renderList();
+                fMsg.textContent = "اتضاف " + E.num(r.questions.length) + " سؤال. راجعهم كلهم قبل الحفظ، القراءة التلقائية ممكن تغلط في كلمة."
+                    + (r.noAnswer ? " " + E.num(r.noAnswer) + " سؤال محتاج تحدد إجابته الصح." : "")
+                    + (r.skipped ? " " + E.num(r.skipped) + " سؤال اتخطّى (من غير اختيارات واضحة)." : "");
+                E.toast("اتضاف " + E.num(r.questions.length) + " سؤال");
+                var first = list.children[base]; if (first) first.scrollIntoView({ block: "start" });
+            } catch (e) {
+                fMsg.textContent = (e && e.message) || "حصل خطأ في قراءة الملف.";
+            } finally { fBtn.disabled = false; }
+        });
+        var fileBox = h("div", { class: "tq_import" }, [].concat(
+            [h("h3", { class: "ac_h2", text: "ارفع ملف الأسئلة وهتتكتب لوحدها (مجاني)" }),
+                h("p", { class: "ac_sub", text: "الأفضل ملف Word (docx) أو PDF مكتوب بالكمبيوتر. بيشتغل كمان على صور أو PDF متصوّر بس القراءة بتكون أقل دقة. الأسئلة لازم تكون برقم وتحتها اختيارات أ) ب) ج) د). لو الإجابة الصح عليها نجمة * أو علامة صح أو في مفتاح إجابات في آخر الملف هتتحدد لوحدها، وغير كده هتحددها إنت." })],
+            field("الملف (Word أو PDF أو صورة)", "fi_file", fFile), [fMsg, h("div", { class: "ac_row" }, [fBtn])]));
+
         var form = h("form", { class: "ac_form", novalidate: true }, [].concat(
             field("اسم الامتحان", "ex_title", title), field("وصف أو تعليمات (بيظهر تحت العنوان)", "ex_desc", desc),
             field("المرحلة", "ex_stage", stage), field("الصف", "ex_grade", grade),
@@ -304,6 +342,7 @@
 
         E.clear(box);
         box.appendChild(h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: ex ? "تعديل الامتحان" : "امتحان جديد (أكتب الأسئلة)" }), form]));
+        box.appendChild(h("div", { class: "ac_card" }, [fileBox]));
         box.appendChild(h("div", { class: "ac_card" }, [importBox]));
         box.appendChild(h("div", { class: "ac_card" }, [h("div", { class: "ac_top" }, [h("h2", { class: "ac_h2", text: "الأسئلة" }), count]), list,
             h("div", { class: "ac_row", style: "margin-top:12px" }, [h("button", { type: "button", class: "ac_btn b_gold", id: "tq_add", text: "+ سؤال جديد", onclick: function () { qs.push(blank()); renderList(); var c = list.lastChild; if (c) c.scrollIntoView({ block: "center" }); } })]),
