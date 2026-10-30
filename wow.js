@@ -18,6 +18,7 @@
     if (reduce || !("IntersectionObserver" in window)) return;
     // العناصر اللي بتظهر تدريجي (كروت الصفحات اللي فيها أنيميشن CSS لوحدها مش داخلة هنا)
     var SEL = ".phase > div, .hr_sc, .wow_ol li, .wow_cta, .text, .ac_card, .ac_course, .ac_lesson";
+    // threshold لازم يكون 0: لو كارت طويل جدًا (مثلًا ٢٠ سؤال) مستحيل ١٠٪ من مساحته تبان مرة واحدة، فكان يفضل مخفي للأبد.
     var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (en) {
             if (!en.isIntersecting) return;
@@ -27,7 +28,7 @@
                 window.setTimeout(function () { el.classList.remove("wow_pre", "wow_in"); el.style.removeProperty("--wd"); }, 900);
             });
         });
-    }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" });
+    }, { threshold: 0, rootMargin: "0px 0px -40px 0px" });
     var seen = new WeakSet();
     function watch(scope) {
         var list = scope.querySelectorAll ? scope.querySelectorAll(SEL) : [];
