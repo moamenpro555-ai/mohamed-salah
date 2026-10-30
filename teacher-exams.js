@@ -35,10 +35,10 @@
         box.appendChild(h("div", { class: "ac_card" }, [
             h("div", { class: "ac_top" }, [
                 h("div", null, [h("h2", { class: "ac_h2", text: "الامتحانات" }),
-                    h("p", { class: "ac_sub", text: "ارفع ملف الأسئلة (Word أو PDF أو صورة) وهتتحوّل لأسئلة لوحدها، أو اكتبها بإيدك، وتظهر للطالب بنفس شكل امتحان الحصة (في امتحانات الحصة أو الشهر). أو ارفع ورقة (صور أو PDF) واكتب مفتاح الإجابات وتظهر في قسم «واجب» للمرحلة والصف اللي تحدده." })]),
+                    h("p", { class: "ac_sub", text: "الامتحان والواجب كل واحد ليه زرار ومحرر لوحده. في الاتنين تقدر ترفع ملف الأسئلة (Word أو PDF أو صورة) وهتتحوّل لأسئلة لوحدها، أو تلصقها، أو تكتبها بإيدك. الامتحان بيظهر في امتحانات الحصة أو الشهر، والواجب بيظهر في قسم «واجب» بس." })]),
                 h("div", { class: "ac_row" }, [
                     h("button", { type: "button", class: "ac_btn b_dark", id: "ex_new_typed", text: "امتحان جديد (أكتب الأسئلة)", onclick: function () { typedEditor(box, null); } }),
-                    h("button", { type: "button", class: "ac_btn b_line", id: "ex_new_paper", text: "واجب بورقة مرفوعة", onclick: function () { editor(box, null); } })
+                    h("button", { type: "button", class: "ac_btn b_dark", id: "ex_new_hw_typed", text: "واجب جديد (أكتب الأسئلة / ارفع ملف)", onclick: function () { typedEditor(box, null, "homework"); } })
                 ])
             ])
         ]));
@@ -48,12 +48,12 @@
             h("thead", null, [h("tr", null, ["الامتحان", "بيظهر لـ", "الأسئلة", "الملفات", "المحاولات", "الحالة", ""].map(function (t) { return h("th", { text: t }); }))]),
             h("tbody", null, exams.map(function (x) {
                 return h("tr", null, [
-                    h("td", { text: x.title }),
+                    h("td", null, [h("span", { text: x.title }), x.typed ? null : h("span", { class: "ac_pill", style: "margin-inline-start:8px", text: "ورقة قديمة (نشر / إخفاء / حذف بس)" })]),
                     h("td", { text: E.placeLabel(x.stage, x.grade) + " - " + E.examWhen(x) }),
                     h("td", { text: E.num(x.questionCount) }), h("td", { text: E.num(x.fileCount) }), h("td", { text: E.num(x.attemptCount) }),
                     h("td", null, [h("span", { class: "ac_pill " + (x.isPublished ? "p_ok" : ""), text: x.isPublished ? "منشور" : "مخفي" })]),
                     h("td", null, [h("div", { class: "ac_row" }, [
-                        h("button", { type: "button", class: "ac_btn b_dark b_sm", text: "تعديل", onclick: function () { if (x.typed) typedEditor(box, x.id); else editor(box, x.id); } }),
+                        x.typed ? h("button", { type: "button", class: "ac_btn b_dark b_sm", text: "تعديل", onclick: function () { typedEditor(box, x.id); } }) : null,
                         h("button", { type: "button", class: "ac_btn b_line b_sm", text: x.isPublished ? "إخفاء" : "نشر", onclick: function () {
                             run(async function () { await E.call("PATCH", "/api/teacher/exams/" + x.id, { isPublished: !x.isPublished }); E.toast(x.isPublished ? "اتخفى الامتحان" : "اتنشر الامتحان"); await examsView(); });
                         } }),
@@ -67,97 +67,6 @@
         ])]));
         box.appendChild(card);
     }
-
-    // ================= إنشاء / تعديل امتحان =================
-    async function editor(box, id) {
-        var d = null;
-        if (id) { d = await run(function () { return E.call("GET", "/api/teacher/exams/" + id); }); if (!d) return; }
-        var ex = d ? d.exam : null;
-        var keyVals = ex ? ex.answerKey.slice() : [];
-
-        var title = h("input", { id: "ex_title", maxlength: "200", value: ex ? ex.title : "" });
-        var desc = h("textarea", { id: "ex_desc", maxlength: "2000" }); desc.value = ex ? ex.description : "";
-        var stage = ui.placeStage("ex_stage", ex ? ex.stage : "secondary");
-        var grade = ui.placeGrade("ex_grade", ex ? ex.grade : 1);
-        var qn = h("input", { id: "ex_qn", type: "number", min: "1", max: "100", value: String(ex ? ex.questionCount : 10) });
-        var cc = h("select", { id: "ex_cc" }, [2, 3, 4, 5].map(function (n) { return option(n, E.num(n) + " اختيارات (" + E.LETTERS.slice(0, n).join(" ") + ")", (ex ? ex.choicesCount : 4) === n); }));
-        var att = h("input", { id: "ex_att", type: "number", min: "0", max: "50", value: String(ex ? ex.maxAttempts : 1) });
-        var showAns = h("input", { type: "checkbox", id: "ex_show" }); showAns.checked = ex ? ex.showAnswers : true;
-        var pub = h("input", { type: "checkbox", id: "ex_pub" }); pub.checked = ex ? ex.isPublished : false;
-        var msg = h("p", { class: "ac_msg", role: "alert" });
-        var keyBox = h("div", { class: "ac_key", id: "ex_key" });
-
-        function buildKey() {
-            var n = Math.max(1, Math.min(100, Number(qn.value) || 1)), c = Number(cc.value);
-            keyVals.length = n;
-            for (var i = 0; i < n; i++) if (keyVals[i] !== undefined && keyVals[i] >= c) keyVals[i] = undefined;
-            E.clear(keyBox);
-            for (var q = 0; q < n; q++) {
-                (function (qi) {
-                    var row = h("div", { class: "ac_q" }, [h("span", { class: "ac_qn", text: "س" + E.num(qi + 1) })]);
-                    for (var j = 0; j < c; j++) {
-                        (function (ji) {
-                            var r = h("input", { type: "radio", name: "ex_k" + qi, value: String(ji), "aria-label": "سؤال " + (qi + 1) + " الإجابة " + E.LETTERS[ji] });
-                            if (keyVals[qi] === ji) r.checked = true;
-                            r.addEventListener("change", function () { keyVals[qi] = ji; });
-                            row.appendChild(h("label", { class: "ac_opt" }, [r, h("span", { text: E.LETTERS[ji] })]));
-                        })(j);
-                    }
-                    keyBox.appendChild(row);
-                })(q);
-            }
-        }
-        qn.addEventListener("change", buildKey); cc.addEventListener("change", buildKey); buildKey();
-
-        var form = h("form", { class: "ac_form", novalidate: true }, [].concat(
-            field("اسم الامتحان", "ex_title", title), field("وصف أو تعليمات (اختياري)", "ex_desc", desc),
-            field("المرحلة", "ex_stage", stage), field("الصف", "ex_grade", grade),
-            field("عدد الأسئلة", "ex_qn", qn), field("عدد الاختيارات لكل سؤال", "ex_cc", cc),
-            field("عدد المحاولات المسموحة (0 = بلا حد)", "ex_att", att),
-            [h("label", { class: "ac_check" }, [showAns, "اظهر الإجابات الصحيحة للطالب بعد التسليم"]),
-                h("label", { class: "ac_check" }, [pub, "منشور (يظهر للطلاب في المرحلة والصف ده)"]),
-                h("h3", { class: "ac_h2", text: "مفتاح الإجابات الصحيحة", style: "margin-top:14px" }),
-                h("p", { class: "ac_sub", text: "اختار الإجابة الصح لكل سؤال. المفتاح ده على السيرفر ومش بيظهر للطالب قبل ما يسلّم." }),
-                keyBox, msg,
-                h("div", { class: "ac_row" }, [
-                    h("button", { type: "submit", class: "ac_btn b_dark", text: ex ? "حفظ التعديلات" : "حفظ الامتحان" }),
-                    h("button", { type: "button", class: "ac_btn b_line", text: "رجوع للقايمة", onclick: function () { examsView(); } })
-                ])]));
-        form.addEventListener("submit", async function (ev) {
-            ev.preventDefault(); msg.textContent = "";
-            var n = Number(qn.value);
-            if (!title.value.trim()) { msg.textContent = "اكتب اسم الامتحان."; return; }
-            if (!Number.isInteger(n) || n < 1 || n > 100) { msg.textContent = "عدد الأسئلة من 1 لـ 100."; return; }
-            var missing = [];
-            for (var i = 0; i < n; i++) if (keyVals[i] === undefined) missing.push(i + 1);
-            if (missing.length) { msg.textContent = "لسه ما حدّدتش الإجابة الصح للأسئلة: " + missing.slice(0, 12).join("، ") + (missing.length > 12 ? " ..." : ""); return; }
-            var data = {
-                title: title.value.trim(), description: desc.value.trim(), stage: stage.value, grade: Number(grade.value),
-                questionCount: n, choicesCount: Number(cc.value), maxAttempts: Number(att.value) || 0, showAnswers: showAns.checked,
-                isPublished: pub.checked, answerKey: keyVals.slice(0, n)
-            };
-            try {
-                if (ex) { await E.call("PATCH", "/api/teacher/exams/" + ex.id, data); E.toast("اتحفظ الواجب"); await editor(box, ex.id); }
-                else { var r = await E.call("POST", "/api/teacher/exams", data); E.toast("اتحفظ الواجب. ارفع الورقة دلوقتي."); await editor(box, r.exam.id); }
-            } catch (e) {
-                msg.textContent = "ما اتحفظش الامتحان: " + (e && e.message ? e.message : "حصل خطأ") + (e && e.status ? " (" + e.status + ")" : "");
-                E.toast(msg.textContent, "bad");
-                msg.scrollIntoView({ block: "center" });
-            }
-        });
-
-        E.clear(box);
-        box.appendChild(h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: ex ? "تعديل الواجب" : "واجب جديد (ورقة مرفوعة)" }), form]));
-        if (ex) {
-            var up = h("div", { class: "ac_card" });
-            box.appendChild(up);
-            await renderUploads(up, ex.id);
-            if (d.files.length === 0) box.insertBefore(h("div", { class: "ac_banner", text: "الامتحان لسه من غير ورقة. ارفع صور أو PDF الأسئلة من الكارت اللي تحت." }), box.firstChild);
-        } else {
-            box.appendChild(h("div", { class: "ac_card" }, [h("p", { class: "ac_sub", text: "بعد ما تحفظ الامتحان هتقدر ترفع الصورة التعريفية وورقة الأسئلة (صور أو PDF)." })]));
-        }
-    }
-
 
     // ================= امتحان بأسئلة مكتوبة =================
     var HELP = "اكتب كل سؤال وتحته اختياراته، وعلّم الإجابة الصح بنجمة * في آخر الاختيار (أو سطر «الإجابة: ب»). الشرح اختياري بسطر «شرح: ...». عنوان الجزء بسطر يبدأ بـ #.\n\n# الجزء الأول: كان وأخواتها\n1- كانَ الطالبُ .... في دراسته.\nأ) مجتهدٌ\nب) مجتهدًا *\nج) مجتهدٍ\nد) مجتهدون\nشرح: «مجتهدًا» خبر كان منصوب.";
@@ -189,7 +98,7 @@
         return out;
     }
 
-    async function typedEditor(box, id) {
+    async function typedEditor(box, id, presetKind) {
         var d = null;
         if (id) { d = await run(function () { return E.call("GET", "/api/teacher/exams/" + id); }); if (!d) return; }
         var ex = d ? d.exam : null;
@@ -199,7 +108,9 @@
         var desc = h("textarea", { id: "ex_desc", maxlength: "2000" }); desc.value = ex ? ex.description : "";
         var stage = ui.placeStage("ex_stage", ex ? ex.stage : "secondary");
         var grade = ui.placeGrade("ex_grade", ex ? ex.grade : 1);
-        var kind = h("select", { id: "ex_kind" }, [option("session", "امتحان حصة", !ex || ex.kind === "session"), option("month", "امتحان شهر", ex && ex.kind === "month")]);
+        var isHw = ex ? ex.kind === "homework" : presetKind === "homework"; // الواجب بمحرر لوحده: مش مربوط بحصة ولا شهر
+        var startKind = ex && ex.kind === "month" ? "month" : "session";
+        var kind = h("select", { id: "ex_kind" }, [option("session", "امتحان حصة", startKind === "session"), option("month", "امتحان شهر", startKind === "month")]);
         var month = h("select", { id: "ex_month" }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return option(m, E.MONTHS[m], ex && ex.month ? ex.month === m : m === 10); }));
         var sno = h("input", { id: "ex_sno", type: "number", min: "1", max: "30", value: String(ex && ex.sessionNo ? ex.sessionNo : 1) });
         var att = h("input", { id: "ex_att", type: "number", min: "0", max: "50", value: String(ex ? ex.maxAttempts : 1) });
@@ -304,9 +215,9 @@
             field("الملف (Word أو PDF أو صورة)", "fi_file", fFile), [fMsg, h("div", { class: "ac_row" }, [fBtn])]));
 
         var form = h("form", { class: "ac_form", novalidate: true }, [].concat(
-            field("اسم الامتحان", "ex_title", title), field("وصف أو تعليمات (بيظهر تحت العنوان)", "ex_desc", desc),
+            field(isHw ? "اسم الواجب" : "اسم الامتحان", "ex_title", title), field("وصف أو تعليمات (بيظهر تحت العنوان)", "ex_desc", desc),
             field("المرحلة", "ex_stage", stage), field("الصف", "ex_grade", grade),
-            field("النوع", "ex_kind", kind), field("الشهر (لامتحان الشهر)", "ex_month", month), field("رقم الحصة (1 = الأولى، 2 = التانية ...)", "ex_sno", sno),
+            isHw ? [] : [].concat(field("النوع", "ex_kind", kind), field("الشهر (لامتحان الشهر)", "ex_month", month), field("رقم الحصة (1 = الأولى، 2 = التانية ...)", "ex_sno", sno)),
             field("عدد المحاولات المسموحة (0 = بلا حد)", "ex_att", att),
             [h("label", { class: "ac_check" }, [showAns, "اظهر الإجابات الصحيحة والشرح للطالب بعد التسليم"]),
                 h("label", { class: "ac_check" }, [pub, "منشور (يظهر للطلاب في المرحلة والصف ده)"])]));
@@ -323,16 +234,17 @@
                 if (q.answer < 0 || q.answer >= q.options.length) { saveMsg.textContent = "السؤال " + E.num(i + 1) + ": حدّد الإجابة الصح."; return; }
             }
             var data = {
-                title: title.value.trim(), description: desc.value.trim(), stage: stage.value, grade: Number(grade.value), kind: kind.value,
+                title: title.value.trim(), description: desc.value.trim(), stage: stage.value, grade: Number(grade.value), kind: isHw ? "homework" : kind.value,
                 maxAttempts: Number(att.value) || 0, showAnswers: showAns.checked, isPublished: pub.checked,
                 questions: qs.map(function (q) { return { section: q.section.trim(), q: q.q.trim(), options: q.options.map(function (o) { return o.trim(); }), answer: q.answer, why: q.why.trim() }; })
             };
-            if (kind.value === "month") data.month = Number(month.value);
-            else { data.sessionNo = Number(sno.value); if (!Number.isInteger(data.sessionNo) || data.sessionNo < 1 || data.sessionNo > 30) { saveMsg.textContent = "رقم الحصة من 1 لـ 30."; return; } }
+            if (isHw) { /* واجب: من غير شهر ولا رقم حصة */ }
+            else if (kind.value === "month") data.month = Number(month.value);
+            else if (kind.value === "session") { data.sessionNo = Number(sno.value); if (!Number.isInteger(data.sessionNo) || data.sessionNo < 1 || data.sessionNo > 30) { saveMsg.textContent = "رقم الحصة من 1 لـ 30."; return; } }
             save.disabled = true;
             try {
-                if (ex) { await E.call("PATCH", "/api/teacher/exams/" + ex.id, data); E.toast("اتحفظ الامتحان"); await typedEditor(box, ex.id); }
-                else { var r = await E.call("POST", "/api/teacher/exams", data); E.toast("اتحفظ الامتحان"); await typedEditor(box, r.exam.id); }
+                if (ex) { await E.call("PATCH", "/api/teacher/exams/" + ex.id, data); E.toast(isHw ? "اتحفظ الواجب" : "اتحفظ الامتحان"); await typedEditor(box, ex.id); }
+                else { var r = await E.call("POST", "/api/teacher/exams", data); E.toast(isHw ? "اتحفظ الواجب" : "اتحفظ الامتحان"); await typedEditor(box, r.exam.id); }
             } catch (e) {
                 saveMsg.textContent = "ما اتحفظش الامتحان: " + (e && e.message ? e.message : "حصل خطأ");
                 E.toast(saveMsg.textContent, "bad");
@@ -341,7 +253,7 @@
         });
 
         E.clear(box);
-        box.appendChild(h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: ex ? "تعديل الامتحان" : "امتحان جديد (أكتب الأسئلة)" }), form]));
+        box.appendChild(h("div", { class: "ac_card" }, [h("h2", { class: "ac_h2", text: ex ? (isHw ? "تعديل الواجب" : "تعديل الامتحان") : (isHw ? "واجب جديد (أكتب الأسئلة)" : "امتحان جديد (أكتب الأسئلة)") }), form]));
         box.appendChild(h("div", { class: "ac_card" }, [fileBox]));
         box.appendChild(h("div", { class: "ac_card" }, [importBox]));
         box.appendChild(h("div", { class: "ac_card" }, [h("div", { class: "ac_top" }, [h("h2", { class: "ac_h2", text: "الأسئلة" }), count]), list,
@@ -349,10 +261,10 @@
             saveMsg,
             h("div", { class: "ac_row" }, [save, h("button", { type: "button", class: "ac_btn b_line", text: "رجوع للقايمة", onclick: function () { examsView(); } })])]));
         if (ex) { var up = h("div", { class: "ac_card" }); box.appendChild(up); await renderUploads(up, ex.id, true); }
-        else box.appendChild(h("div", { class: "ac_card" }, [h("p", { class: "ac_sub", text: "بعد الحفظ تقدر ترفع صورة تعريفية للامتحان." })]));
+        else box.appendChild(h("div", { class: "ac_card" }, [h("p", { class: "ac_sub", text: isHw ? "بعد الحفظ تقدر ترفع صورة تعريفية للواجب." : "بعد الحفظ تقدر ترفع صورة تعريفية للامتحان." })]));
     }
 
-    // الصورة التعريفية + ملفات الورقة
+    // الصورة التعريفية
     async function renderUploads(card, id, coverOnly) {
         var d = await run(function () { return E.call("GET", "/api/teacher/exams/" + id); });
         if (!d) return;
@@ -378,42 +290,6 @@
                 run(async function () { await E.upload("PUT", "/api/teacher/exams/" + id + "/cover", f); E.toast("اترفعت الصورة"); await renderUploads(card, id, coverOnly); });
             } })
         ]));
-
-        if (coverOnly) return;
-        card.appendChild(h("h2", { class: "ac_h2", text: "ورقة الامتحان (" + E.num(d.files.length) + " ملف)", style: "margin-top:22px" }));
-        card.appendChild(h("p", { class: "ac_sub", text: "الطالب هيشوف الملفات بنفس الترتيب. الصور (6 ميجا للصورة) أو PDF (8 ميجا). مفيش حد غير الطلاب المسموح لهم يقدر يفتحها." }));
-        if (d.files.length) card.appendChild(h("ul", { class: "ac_list", style: "margin:10px 0" }, d.files.map(function (f, i) {
-            return h("li", null, [h("div", { class: "ac_lesson", style: "cursor:default;flex-wrap:wrap" }, [
-                h("span", { class: "ic", text: E.num(i + 1) }),
-                h("span", { style: "flex:1", text: (f.filename || (f.contentType === "application/pdf" ? "ملف PDF" : "صورة")) + " (" + kb(f.size) + ")" }),
-                h("button", { type: "button", class: "ac_btn b_line b_sm", text: "معاينة", onclick: async function () {
-                    var w = window.open("", "_blank");
-                    try { var u = await E.blobUrl("/api/exams/" + id + "/files/" + f.id); if (w) w.location = u; } catch (e) { if (w) w.close(); E.toast("مقدرتش أفتح الملف", "bad"); }
-                } }),
-                h("button", { type: "button", class: "ac_btn b_bad b_sm", text: "حذف", onclick: async function () {
-                    if (!(await E.confirmBox("تمسح الملف ده من الامتحان؟", "احذف الملف"))) return;
-                    run(async function () { await E.call("DELETE", "/api/teacher/exams/" + id + "/files/" + f.id); await renderUploads(card, id); });
-                } })
-            ])]);
-        })));
-        var files = h("input", { type: "file", multiple: true, id: "ex_files", accept: "image/png,image/jpeg,image/webp,application/pdf" });
-        var go = h("button", { type: "button", class: "ac_btn b_gold", text: "رفع الملفات" });
-        go.addEventListener("click", async function () {
-            var list = Array.prototype.slice.call(files.files);
-            if (!list.length) { E.toast("اختار ملفات الأول", "bad"); return; }
-            go.disabled = true;
-            var ok = 0;
-            for (var i = 0; i < list.length; i++) {
-                var f = list[i];
-                var isPdf = /\.pdf$/i.test(f.name) || f.type === "application/pdf";
-                if (f.size > (isPdf ? 8 : 6) * 1048576) { E.toast("«" + f.name + "» أكبر من الحد المسموح", "bad"); continue; }
-                try { await E.upload("POST", "/api/teacher/exams/" + id + "/files?name=" + encodeURIComponent(f.name), f); ok++; }
-                catch (e) { E.toast("«" + f.name + "»: " + (e.message || "فشل الرفع"), "bad"); }
-            }
-            if (ok) E.toast("اترفع " + E.num(ok) + " ملف");
-            await renderUploads(card, id);
-        });
-        card.appendChild(h("div", { class: "ac_form" }, [h("label", { for: "ex_files", text: "اختار صور أو PDF (تقدر تختار كذا ملف مرة واحدة، بالترتيب)" }), files, go]));
     }
 
     // ================= السجل =================
@@ -423,7 +299,7 @@
         var exSel = h("select", { id: "rs_ex", "aria-label": "الامتحان" }, [option("", "كل الامتحانات", !filters.examId)].concat(exams.map(function (x) { return option(x.id, x.title + " - " + E.placeLabel(x.stage, x.grade), x.id === filters.examId); })));
         var st = h("select", { id: "rs_st", "aria-label": "المرحلة" }, [option("", "كل المراحل", !filters.stage), option("secondary", "ثانوي", filters.stage === "secondary")]);
         var gr = h("select", { id: "rs_gr", "aria-label": "الصف" }, [option("", "كل الصفوف", !filters.grade)].concat([1, 2, 3].map(function (g) { return option(g, "الصف " + E.GRADES[g], String(g) === filters.grade); })));
-        var kd = h("select", { id: "rs_kd", "aria-label": "النوع" }, [option("", "كل الأنواع", !filters.kind), option("session", "امتحانات الحصة", filters.kind === "session"), option("month", "امتحانات الشهر", filters.kind === "month"), option("homework", "واجب", filters.kind === "homework")]);
+        var kd = h("select", { id: "rs_kd", "aria-label": "النوع" }, [option("", "كل الأنواع", !filters.kind), option("session", "امتحانات الحصة", filters.kind === "session"), option("month", "امتحانات الشهر", filters.kind === "month"), option("homework", "الواجب", filters.kind === "homework"), option("homework", "واجب", filters.kind === "homework")]);
         var mo = h("select", { id: "rs_mo", "aria-label": "الشهر" }, [option("", "كل الشهور", !filters.month)].concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return option(m, E.MONTHS[m], String(m) === filters.month); })));
         var q = h("input", { class: "ac_in", type: "search", placeholder: "اسم الطالب أو إيميله", value: filters.q, "aria-label": "بحث" });
         var out = h("div");

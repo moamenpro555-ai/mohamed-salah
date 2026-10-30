@@ -88,7 +88,7 @@
             });
         });
     }
-    // ورقة الواجب (صور / PDF): بتظهر في قسم "واجب" بس، للمرحلة والصف اللي المدرس حدده
+    // الواجب (أسئلة مكتوبة أو ملف اتحوّل لأسئلة): بيظهر في قسم "واجب" بس، للمرحلة والصف اللي المدرس حدده (والورقي القديم لسه بيفتح)
     async function homework() {
         var areas = Array.prototype.slice.call(document.querySelectorAll('[data-area="homework"]'));
         if (!areas.length) return;
